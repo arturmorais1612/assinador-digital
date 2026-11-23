@@ -31,7 +31,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y libpcsclite-dev swig gcc
-      - run: pip install -r requirements.txt pillow
+      - run: pip install PySide6==6.6.3 cryptography==42.0.8 pyHanko pykcs11 pyinstaller pillow
       - name: Converter webp para png
         run: python -c "from PIL import Image; Image.open('jujuba.webp').save('logo.png')"
       - run: pyinstaller --noconfirm --onefile --windowed --add-data "jujuba.webp:." --name dede-assinador main.py
@@ -57,7 +57,7 @@ jobs:
           Section: utils
           Priority: optional
           Architecture: amd64
-          Depends: pcscd, opensc
+          Depends: pcscd, opensc, libxcb-cursor0, libegl1, libxkbcommon-x11-0
           Maintainer: Artur Morais Silva
           Description: Assinador Digital Open Source para PDF (A1 e A3)
           EOF

@@ -7,15 +7,15 @@ from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog,
     QComboBox, QMessageBox, QGroupBox, QTabWidget, QSpinBox,
     QDialog, QGraphicsView, QGraphicsScene, QGraphicsRectItem,
     QGraphicsSimpleTextItem, QGraphicsItem, QCheckBox
 )
-from PyQt5.QtGui import QIcon, QPen, QBrush, QColor, QFont, QPainter
-from PyQt5.QtCore import Qt
+from PySide6.QtGui import QIcon, QPen, QBrush, QColor, QFont, QPainter
+from PySide6.QtCore import Qt
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.pdf_utils.reader import PdfFileReader
 from pyhanko.sign import signers, fields, pkcs11
@@ -159,11 +159,12 @@ class DialogoPosicionarAssinatura(QDialog):
         img_h = int(self.pdf_h * self.escala_render)
 
         self.scene = QGraphicsScene(0, 0, img_w, img_h)
-        # Desenha a folha branca com margens guia
-        folha = self.scene.addRect(0, 0, img_w, img_h, QPen(QColor(150, 150, 150), 2), QBrush(QColor(255, 255, 255)))
-        self.scene.addRect(40 * self.escala_render, 40 * self.escala_render,
-                           img_w - 80 * self.escala_render, img_h - 80 * self.escala_render,
-                           QPen(QColor(225, 225, 225), 1, Qt.DotLine))
+        self.scene.addRect(0, 0, img_w, img_h, QPen(QColor(150, 150, 150), 2), QBrush(QColor(255, 255, 255)))
+        self.scene.addRect(
+            40 * self.escala_render, 40 * self.escala_render,
+            img_w - 80 * self.escala_render, img_h - 80 * self.escala_render,
+            QPen(QColor(225, 225, 225), 1, Qt.DotLine)
+        )
 
         carimbo_w = 240 * self.escala_render
         carimbo_h = 60 * self.escala_render
@@ -246,7 +247,6 @@ class AssinadorApp(QWidget):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
 
-        # 1. Documento PDF
         grp_pdf = QGroupBox("1. Documento PDF (ou arraste o arquivo aqui)")
         lay_pdf = QHBoxLayout(grp_pdf)
         self.txt_pdf = QLineEdit()
@@ -257,12 +257,10 @@ class AssinadorApp(QWidget):
         lay_pdf.addWidget(btn_pdf)
         layout.addWidget(grp_pdf)
 
-        # 2. Método de Assinatura
         grp_cert = QGroupBox("2. Método de Assinatura")
         lay_cert_main = QVBoxLayout(grp_cert)
         self.tabs_cert = QTabWidget()
 
-        # Aba 0: A1
         tab_a1 = QWidget()
         lay_a1 = QVBoxLayout(tab_a1)
         row_pfx = QHBoxLayout()
@@ -284,7 +282,6 @@ class AssinadorApp(QWidget):
         lay_a1.addLayout(row_senha_a1)
         self.tabs_cert.addTab(tab_a1, "Certificado Arquivo (A1)")
 
-        # Aba 1: A3 (Token)
         tab_a3 = QWidget()
         lay_a3 = QVBoxLayout(tab_a3)
         row_lib = QHBoxLayout()
@@ -307,7 +304,6 @@ class AssinadorApp(QWidget):
         lay_a3.addLayout(row_pin)
         self.tabs_cert.addTab(tab_a3, "Token / Smartcard (A3)")
 
-        # Aba 2: Personalizada (Sem Token)
         tab_pers = QWidget()
         lay_pers = QVBoxLayout(tab_pers)
 
@@ -330,7 +326,6 @@ class AssinadorApp(QWidget):
         lay_cert_main.addWidget(self.tabs_cert)
         layout.addWidget(grp_cert)
 
-        # 3. Página e Posição Visual
         grp_pos = QGroupBox("3. Página e Local da Assinatura")
         lay_pos_main = QVBoxLayout(grp_pos)
 
@@ -361,7 +356,6 @@ class AssinadorApp(QWidget):
 
         layout.addWidget(grp_pos)
 
-        # Botão Assinar
         self.btn_assinar = QPushButton("Assinar Documento")
         self.btn_assinar.setStyleSheet("font-weight: bold; padding: 10px; font-size: 14px;")
         self.btn_assinar.clicked.connect(self.assinar_documento)
@@ -396,7 +390,7 @@ class AssinadorApp(QWidget):
 
         pagina_idx = self.obter_indice_pagina(total_paginas)
         dlg = DialogoPosicionarAssinatura(pdf_path, pagina_idx, self.box_personalizada, self)
-        if dlg.exec_() == QDialog.Accepted and dlg.box_resultado:
+        if dlg.exec() == QDialog.Accepted and dlg.box_resultado:
             self.box_personalizada = dlg.box_resultado
             self.lbl_status_pos.setText(
                 f"Local definido na página {pagina_idx + 1} (X={int(self.box_personalizada[0])}, Y={int(self.box_personalizada[1])})"
@@ -513,4 +507,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     janela = AssinadorApp()
     janela.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

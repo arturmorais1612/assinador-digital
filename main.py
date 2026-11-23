@@ -23,6 +23,10 @@ def detectar_biblioteca_pkcs11():
     sistema = platform.system()
     if sistema == "Linux":
         caminhos = [
+            "/usr/lib/libaetpkss.so",
+            "/usr/lib/libaetpkss.so.3",
+            "/usr/lib/x86_64-linux-gnu/libaetpkss.so",
+            "/usr/lib64/libaetpkss.so",
             "/usr/lib64/opensc-pkcs11.so",
             "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so",
             "/usr/lib/libeToken.so",
@@ -30,8 +34,9 @@ def detectar_biblioteca_pkcs11():
         ]
     else:
         caminhos = [
-            r"C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll",
+            r"C:\Windows\System32\aetpkss1.dll",
             r"C:\Windows\System32\eTPKCS11.dll",
+            r"C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll",
         ]
     for caminho in caminhos:
         if os.path.isfile(caminho):
@@ -177,7 +182,7 @@ class AssinadorApp(QWidget):
             self.txt_pfx.setText(caminho)
 
     def selecionar_lib(self):
-        caminho, _ = QFileDialog.getOpenFileName(self, "Selecionar Biblioteca PKCS#11", "/usr/lib64", "Bibliotecas (*.so *.dll)")
+        caminho, _ = QFileDialog.getOpenFileName(self, "Selecionar Biblioteca PKCS#11", "/usr/lib", "Bibliotecas (*.so *.dll)")
         if caminho:
             self.txt_lib_pkcs11.setText(caminho)
 

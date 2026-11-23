@@ -39,6 +39,7 @@ jobs:
         run: |
           mkdir -p pkg/usr/bin pkg/usr/share/applications pkg/usr/share/pixmaps pkg/DEBIAN
           cp dist/dede-assinador pkg/usr/bin/
+          chmod 755 pkg/usr/bin/dede-assinador
           cp logo.png pkg/usr/share/pixmaps/dede-assinador.png
           cat << 'EOF' > pkg/usr/share/applications/dede-assinador.desktop
           [Desktop Entry]
@@ -60,7 +61,8 @@ jobs:
           Maintainer: Artur Morais Silva
           Description: Assinador Digital Open Source para PDF (A1 e A3)
           EOF
-          dpkg-deb --build pkg dede-assinador_1.0.0_amd64.deb
+          chmod 755 pkg/DEBIAN
+          dpkg-deb -Zgzip --build pkg dede-assinador_1.0.0_amd64.deb
       - uses: actions/upload-artifact@v4
         with:
           name: Ubuntu-DEB

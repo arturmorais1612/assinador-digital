@@ -13,6 +13,12 @@ from pyhanko.sign import signers, fields, pkcs11
 from pyhanko.stamp import TextStampStyle
 
 
+def caminho_recurso(relativo):
+    """Localiza a logo tanto no VS Code quanto empacotada no .exe/.deb/.rpm."""
+    base = getattr(sys, "_MEIPASS", os.path.abspath("."))
+    return os.path.join(base, relativo)
+
+
 def detectar_biblioteca_pkcs11():
     sistema = platform.system()
     if sistema == "Linux":
@@ -39,11 +45,11 @@ class AssinadorApp(QWidget):
         self.setWindowTitle("Dedé Assinador Digital")
         self.setMinimumWidth(560)
         self.setAcceptDrops(True)
-        
-        # Carrega a logo do app se o arquivo existir
-        if os.path.isfile("jujuba.webp"):
-            self.setWindowIcon(QIcon("jujuba.webp"))
-            
+
+        icone = caminho_recurso("jujuba.webp")
+        if os.path.isfile(icone):
+            self.setWindowIcon(QIcon(icone))
+
         self.setup_ui()
 
     def dragEnterEvent(self, event):

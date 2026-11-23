@@ -14,8 +14,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -r requirements.txt
-      - run: pyinstaller --noconfirm --onefile --windowed --icon=logo.png --add-data "logo.png;." --name "DedeAssinadorDigital" main.py
+      - run: pip install -r requirements.txt pillow
+      - name: Converter webp para png
+        run: python -c "from PIL import Image; Image.open('jujuba.webp').save('logo.png')"
+      - run: pyinstaller --noconfirm --onefile --windowed --icon=logo.png --add-data "jujuba.webp;." --name "DedeAssinadorDigital" main.py
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-EXE
@@ -29,8 +31,10 @@ jobs:
         with:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y libpcsclite-dev swig gcc
-      - run: pip install -r requirements.txt
-      - run: pyinstaller --noconfirm --onefile --windowed --add-data "logo.png:." --name dede-assinador main.py
+      - run: pip install -r requirements.txt pillow
+      - name: Converter webp para png
+        run: python -c "from PIL import Image; Image.open('jujuba.webp').save('logo.png')"
+      - run: pyinstaller --noconfirm --onefile --windowed --add-data "jujuba.webp:." --name dede-assinador main.py
       - name: Empacotar .deb
         run: |
           mkdir -p pkg/usr/bin pkg/usr/share/applications pkg/usr/share/pixmaps pkg/DEBIAN
@@ -68,8 +72,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: dnf install -y python3-pip python3-devel gcc swig pcsc-lite-devel rpm-build tar
-      - run: pip install -r requirements.txt
-      - run: pyinstaller --noconfirm --onefile --windowed --add-data "logo.png:." --name dede-assinador main.py
+      - run: pip install -r requirements.txt pillow
+      - name: Converter webp para png
+        run: python3 -c "from PIL import Image; Image.open('jujuba.webp').save('logo.png')"
+      - run: pyinstaller --noconfirm --onefile --windowed --add-data "jujuba.webp:." --name dede-assinador main.py
       - name: Empacotar .rpm
         run: |
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}

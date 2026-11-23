@@ -7,16 +7,15 @@ from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from PySide6.QtWidgets import (
+from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog,
     QComboBox, QMessageBox, QGroupBox, QTabWidget, QSpinBox,
     QDialog, QGraphicsView, QGraphicsScene, QGraphicsRectItem,
     QGraphicsSimpleTextItem, QGraphicsItem, QCheckBox
 )
-from PySide6.QtGui import QIcon, QPixmap, QPen, QBrush, QColor, QFont, QPainter
-from PySide6.QtCore import Qt, QRectF, QSize
-from PySide6.QtPdf import QPdfDocument
+from PyQt5.QtGui import QIcon, QPen, QBrush, QColor, QFont, QPainter
+from PyQt5.QtCore import Qt
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.pdf_utils.reader import PdfFileReader
 from pyhanko.sign import signers, fields, pkcs11
@@ -24,7 +23,6 @@ from pyhanko.stamp import TextStampStyle
 
 
 def caminho_recurso(relativo):
-    """Localiza a logo tanto no VS Code quanto empacotada no .exe/.deb/.rpm."""
     base = getattr(sys, "_MEIPASS", os.path.abspath("."))
     return os.path.join(base, relativo)
 
@@ -55,7 +53,6 @@ def detectar_biblioteca_pkcs11():
 
 
 def criar_assinante_personalizado(nome_pessoa, complemento=""):
-    """Gera em memória um certificado PAdES autoassinado com o nome informado."""
     chave = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     atributos = [x509.NameAttribute(NameOID.COMMON_NAME, nome_pessoa)]
@@ -104,12 +101,11 @@ def criar_assinante_personalizado(nome_pessoa, complemento=""):
 
 
 class CaixaAssinaturaArrastavel(QGraphicsRectItem):
-    """Retângulo arrastável limitado aos cantos da página do PDF."""
     def __init__(self, w, h, limite_w, limite_h):
         super().__init__(0, 0, w, h)
         self.limite_w = limite_w
         self.limite_h = limite_h
-        self.setBrush(QBrush(QColor(0, 120, 215, 65)))
+        self.setBrush(QBrush(QColor(0, 120, 215, 70)))
         self.setPen(QPen(QColor(0, 90, 180), 2, Qt.DashLine))
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
@@ -140,55 +136,51 @@ class CaixaAssinaturaArrastavel(QGraphicsRectItem):
 
 
 class DialogoPosicionarAssinatura(QDialog):
-    """Janela interativa para arrastar o carimbo sobre a página do PDF."""
     def __init__(self, pdf_path, pagina_idx, box_atual=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(f"Posicionar Assinatura - Página {pagina_idx + 1}")
-        self.resize(680, 820)
-        self.pdf_path = pdf_path
-        self.pagina_idx = pagina_idx
+        self.resize(620, 780)
         self.box_resultado = box_atual
 
         layout = QVBoxLayout(self)
-        instrucao = QLabel("Arraste o quadro azul com o mouse até o local exato onde deseja assinar:")
+        instrucao = QLabel("Arraste o quadro azul com o mouse até o local da folha onde deseja assinar:")
         instrucao.setStyleSheet("font-weight: bold;")
         layout.addWidget(instrucao)
 
-        # Carrega e renderiza a página do PDF
-        self.doc = QPdfDocument(self)
-        self.doc.load(pdf_path)
+        with open(pdf_path, "rb") as f:
+            reader = PdfFileReader(f)
+            pagina_obj = reader.root["/Pages"]["/Kids"][pagina_idx].get_object()
+            mediabox = pagina_obj.get("/MediaBox") or [0, 0, 595, 842]
+            self.pdf_w = float(mediabox[2]) - float(mediabox[0])
+            self.pdf_h = float(mediabox[3]) - float(mediabox[1])
 
-        pt_size = self.doc.pagePointSize(pagina_idx)
-        self.pdf_w = pt_size.width() if pt_size.width() > 0 else 595.0
-        self.pdf_h = pt_size.height() if pt_size.height() > 0 else 842.0
-
-        # Renderiza imagem nítida da página
-        escala_render = 1.2
-        img_w = int(self.pdf_w * escala_render)
-        img_h = int(self.pdf_h * escala_render)
-        imagem = self.doc.render(pagina_idx, QSize(img_w, img_h))
-        pixmap = QPixmap.fromImage(imagem)
+        self.escala_render = 1.05
+        img_w = int(self.pdf_w * self.escala_render)
+        img_h = int(self.pdf_h * self.escala_render)
 
         self.scene = QGraphicsScene(0, 0, img_w, img_h)
-        self.scene.addPixmap(pixmap)
+        # Desenha a folha branca com margens guia
+        folha = self.scene.addRect(0, 0, img_w, img_h, QPen(QColor(150, 150, 150), 2), QBrush(QColor(255, 255, 255)))
+        self.scene.addRect(40 * self.escala_render, 40 * self.escala_render,
+                           img_w - 80 * self.escala_render, img_h - 80 * self.escala_render,
+                           QPen(QColor(225, 225, 225), 1, Qt.DotLine))
 
-        # Tamanho padrão do carimbo em pontos PDF: 240 x 60
-        carimbo_w = 240 * escala_render
-        carimbo_h = 60 * escala_render
+        carimbo_w = 240 * self.escala_render
+        carimbo_h = 60 * self.escala_render
         self.caixa = CaixaAssinaturaArrastavel(carimbo_w, carimbo_h, img_w, img_h)
 
         if box_atual:
             x1, y1, x2, y2 = box_atual
-            pos_x = x1 * escala_render
-            pos_y = (self.pdf_h - y2) * escala_render
+            pos_x = x1 * self.escala_render
+            pos_y = (self.pdf_h - y2) * self.escala_render
             self.caixa.setPos(pos_x, pos_y)
         else:
             self.caixa.setPos((img_w - carimbo_w) / 2, img_h - carimbo_h - 60)
 
-        self.escala_render = escala_render
         self.scene.addItem(self.caixa)
 
         self.view = QGraphicsView(self.scene)
+        self.view.setBackgroundBrush(QBrush(QColor(210, 214, 220)))
         self.view.setRenderHint(QPainter.Antialiasing)
         layout.addWidget(self.view)
 
@@ -204,7 +196,6 @@ class DialogoPosicionarAssinatura(QDialog):
         layout.addLayout(botoes)
 
     def confirmar(self):
-        # Converte coordenadas da tela (origem topo-esquerda) para PDF (origem base-esquerda)
         pos = self.caixa.pos()
         rect = self.caixa.rect()
         x1 = pos.x() / self.escala_render
@@ -405,7 +396,7 @@ class AssinadorApp(QWidget):
 
         pagina_idx = self.obter_indice_pagina(total_paginas)
         dlg = DialogoPosicionarAssinatura(pdf_path, pagina_idx, self.box_personalizada, self)
-        if dlg.exec() == QDialog.Accepted and dlg.box_resultado:
+        if dlg.exec_() == QDialog.Accepted and dlg.box_resultado:
             self.box_personalizada = dlg.box_resultado
             self.lbl_status_pos.setText(
                 f"Local definido na página {pagina_idx + 1} (X={int(self.box_personalizada[0])}, Y={int(self.box_personalizada[1])})"
@@ -522,4 +513,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     janela = AssinadorApp()
     janela.show()
-    sys.exit(app.exec())
+    sys.exit(app.exec_())

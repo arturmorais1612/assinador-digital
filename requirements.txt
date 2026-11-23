@@ -1,4 +1,7 @@
-pyhanko[pkcs11,image-support]
-pyside6
-cryptography
+PyQt5==5.15.11
+pyHanko==0.25.1
+cryptography==41.0.7
+pypdf==4.3.1
+pykcs11==1.5.15
 pyinstaller
+pillow

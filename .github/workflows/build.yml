@@ -68,10 +68,10 @@ jobs:
 
   build-fedora-rpm:
     runs-on: ubuntu-latest
-    container: fedora:latest
+    container: fedora:41
     steps:
       - uses: actions/checkout@v4
-      - run: dnf install -y python3-pip python3-devel gcc swig pcsc-lite-devel rpm-build tar
+      - run: dnf install -y python3-pip python3-devel gcc swig pcsc-lite-devel rpm-build tar findutils
       - run: pip install -r requirements.txt pillow
       - name: Converter webp para png
         run: python3 -c "from PIL import Image; Image.open('jujuba.webp').save('logo.png')"
@@ -94,6 +94,9 @@ jobs:
           EOF
           tar -czvf ~/rpmbuild/SOURCES/dede-assinador-1.0.0.tar.gz -C ~/rpmbuild/SOURCES dede-assinador-1.0.0
           cat << 'EOF' > ~/rpmbuild/SPECS/dede-assinador.spec
+          %global debug_package %{nil}
+          %define _build_id_links none
+
           Name:           dede-assinador
           Version:        1.0.0
           Release:        1%{?dist}
@@ -101,16 +104,19 @@ jobs:
           License:        GPLv3
           Source0:        %{name}-%{version}.tar.gz
           Requires:       pcsc-lite, opensc
-          %define _build_id_links none
+
           %description
           Dedé Assinador Digital Open Source para documentos PDF (A1 e A3).
+
           %prep
           %setup -q
+
           %install
           mkdir -p %{buildroot}/usr/bin %{buildroot}/usr/share/applications %{buildroot}/usr/share/pixmaps
           install -m 755 dede-assinador %{buildroot}/usr/bin/dede-assinador
           install -m 644 dede-assinador.png %{buildroot}/usr/share/pixmaps/dede-assinador.png
           install -m 644 dede-assinador.desktop %{buildroot}/usr/share/applications/dede-assinador.desktop
+
           %files
           /usr/bin/dede-assinador
           /usr/share/pixmaps/dede-assinador.png

@@ -1,0 +1,4 @@
+pyhanko[pkcs11,image-support]
+pyside6
+cryptography
+pyinstaller

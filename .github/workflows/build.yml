@@ -1,0 +1,118 @@
+name: Gerar Instaladores (Dedé Assinador)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: pyinstaller --noconfirm --onefile --windowed --icon=logo.png --add-data "logo.png;." --name "DedeAssinadorDigital" main.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows-EXE
+          path: dist/DedeAssinadorDigital.exe
+
+  build-ubuntu-deb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y libpcsclite-dev swig gcc
+      - run: pip install -r requirements.txt
+      - run: pyinstaller --noconfirm --onefile --windowed --add-data "logo.png:." --name dede-assinador main.py
+      - name: Empacotar .deb
+        run: |
+          mkdir -p pkg/usr/bin pkg/usr/share/applications pkg/usr/share/pixmaps pkg/DEBIAN
+          cp dist/dede-assinador pkg/usr/bin/
+          cp logo.png pkg/usr/share/pixmaps/dede-assinador.png
+          cat << 'EOF' > pkg/usr/share/applications/dede-assinador.desktop
+          [Desktop Entry]
+          Name=Dedé Assinador Digital
+          Comment=Assinador de PDF com certificados A1 e A3
+          Exec=/usr/bin/dede-assinador
+          Icon=dede-assinador
+          Terminal=false
+          Type=Application
+          Categories=Office;Utility;
+          EOF
+          cat << 'EOF' > pkg/DEBIAN/control
+          Package: dede-assinador
+          Version: 1.0.0
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Depends: pcscd, opensc
+          Maintainer: Artur Morais Silva
+          Description: Assinador Digital Open Source para PDF (A1 e A3)
+          EOF
+          dpkg-deb --build pkg dede-assinador_1.0.0_amd64.deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ubuntu-DEB
+          path: dede-assinador_1.0.0_amd64.deb
+
+  build-fedora-rpm:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: dnf install -y python3-pip python3-devel gcc swig pcsc-lite-devel rpm-build tar
+      - run: pip install -r requirements.txt
+      - run: pyinstaller --noconfirm --onefile --windowed --add-data "logo.png:." --name dede-assinador main.py
+      - name: Empacotar .rpm
+        run: |
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          mkdir -p ~/rpmbuild/SOURCES/dede-assinador-1.0.0
+          cp dist/dede-assinador ~/rpmbuild/SOURCES/dede-assinador-1.0.0/
+          cp logo.png ~/rpmbuild/SOURCES/dede-assinador-1.0.0/dede-assinador.png
+          cat << 'EOF' > ~/rpmbuild/SOURCES/dede-assinador-1.0.0/dede-assinador.desktop
+          [Desktop Entry]
+          Name=Dedé Assinador Digital
+          Comment=Assinador de PDF com certificados A1 e A3
+          Exec=/usr/bin/dede-assinador
+          Icon=/usr/share/pixmaps/dede-assinador.png
+          Terminal=false
+          Type=Application
+          Categories=Office;Utility;
+          EOF
+          tar -czvf ~/rpmbuild/SOURCES/dede-assinador-1.0.0.tar.gz -C ~/rpmbuild/SOURCES dede-assinador-1.0.0
+          cat << 'EOF' > ~/rpmbuild/SPECS/dede-assinador.spec
+          Name:           dede-assinador
+          Version:        1.0.0
+          Release:        1%{?dist}
+          Summary:        Dedé Assinador Digital Open Source para PDF (A1 e A3)
+          License:        GPLv3
+          Source0:        %{name}-%{version}.tar.gz
+          Requires:       pcsc-lite, opensc
+          %define _build_id_links none
+          %description
+          Dedé Assinador Digital Open Source para documentos PDF (A1 e A3).
+          %prep
+          %setup -q
+          %install
+          mkdir -p %{buildroot}/usr/bin %{buildroot}/usr/share/applications %{buildroot}/usr/share/pixmaps
+          install -m 755 dede-assinador %{buildroot}/usr/bin/dede-assinador
+          install -m 644 dede-assinador.png %{buildroot}/usr/share/pixmaps/dede-assinador.png
+          install -m 644 dede-assinador.desktop %{buildroot}/usr/share/applications/dede-assinador.desktop
+          %files
+          /usr/bin/dede-assinador
+          /usr/share/pixmaps/dede-assinador.png
+          /usr/share/applications/dede-assinador.desktop
+          EOF
+          rpmbuild -bb ~/rpmbuild/SPECS/dede-assinador.spec
+          cp ~/rpmbuild/RPMS/x86_64/*.rpm ./
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fedora-RPM
+          path: "*.rpm"
